@@ -6,6 +6,7 @@
 #include "Arduino.h"
 
 #define LNK4_RAD 2.835
+#define MAX_LENGTH 1023
 
 class InverseKinematics
 {

@@ -1,32 +1,54 @@
 #pragma once 
-
 #include <Arduino.h>
+#include <string.h>
+
+#ifdef ARDUINO_SAMD_VARIANT_COMPLIANCE
+  #define SERIAL SerialUSB
+  #define SYS_VOL   3.3
+#else
+  #define SERIAL Serial
+  #define SYS_VOL   5
+#endif
+
+enum Encoder_Location 
+{
+  ENCODER_LOCATION_JOINT1 = 0,  //Base
+  ENCODER_LOCATION_JOINT2 = 1,
+  ENCODER_LOCATION_JOINT3 = 2,
+  ENCODER_LOCATION_JOINT4 = 3 
+};
 
 class Magnetic_Encoder
 {
+private:
+  String loc_names[4] = {"Joint1", "Joint2", "Joint3", "Joint4"};
+  unsigned int Location;
 public:
-
   Magnetic_Encoder(void);
+  
+  void Set_Encoder_loc(unsigned int Location) { this->Location = Location; }
+
+  bool Initiate(unsigned int trial_count = 0);
   int getAddress();
 
-  word setMaxAngle(word newMaxAngle = -1);
-  word getMaxAngle();
+  unsigned int setMaxAngle(unsigned int newMaxAngle = -1);
+  unsigned int getMaxAngle();
 
-  word setStartPosition(word startAngle = -1);
-  word getStartPosition();
+  unsigned int setStartPosition(unsigned int startAngle = -1);
+  unsigned int getStartPosition();
 
-  word setEndPosition(word endAngle = -1);
-  word getEndPosition();
+  unsigned int setEndPosition(unsigned int endAngle = -1);
+  unsigned int getEndPosition();
 
-  word getRawAngle();
-  word getScaledAngle();
+  unsigned int getRawAngle();
+  unsigned int getScaledAngle();
 
   int detectMagnet();
   int getMagnetStrength();
   int getAgc();
-  word getMagnitude();
-  word getConf();
-  void setConf(word _conf);
+  unsigned int getMagnitude();
+  unsigned int getConf();
+  void setConf(unsigned int _conf);
 
   int getBurnCount();
   int burnAngle();
@@ -39,7 +61,7 @@ private:
   static const uint8_t _ams5600_Address = 0x36;
   
   // single byte registers
-  static const uint8_t _addr_status = 0x0b; // magnet status
+  static const uint8_t _addr_status = 0x0B; // magnet status
   static const uint8_t _addr_agc    = 0x1a; // automatic gain control
   static const uint8_t _addr_burn   = 0xff; // permanent burning of configs (zpos, mpos, mang, conf)
   static const uint8_t _addr_zmco   = 0x00; // number of times zpos/mpos has been permanently burned
@@ -65,10 +87,13 @@ private:
                                                // 0x1c - lower byte
 
   int readOneByte(int in_adr);
-  word readTwoBytesSeparately(int addr_in);
-  word readTwoBytesTogether(int addr_in);
+  unsigned int readTwoBytesSeparately(int addr_in);
+  unsigned int readTwoBytesTogether(int addr_in);
   void writeOneByte(int adr_in, int dat_in);
 
+  //for initializing
+  bool infinite_test();
+  bool finite_test(unsigned int max_test);
 };
 
 

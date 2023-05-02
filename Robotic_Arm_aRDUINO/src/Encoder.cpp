@@ -1,5 +1,6 @@
 #include "Encoder.h"
 
+#include <Arduino.h>
 #include "Wire.h"
 
 /****************************************************
@@ -10,6 +11,61 @@
 *****************************************************/
 Magnetic_Encoder::Magnetic_Encoder()
 {
+}
+
+bool Magnetic_Encoder::infinite_test()
+{
+  while(1)
+  {
+    if(detectMagnet() == 1)
+    {
+      SERIAL.print("Current Magnitude @ " + loc_names[Location] + ": ");
+      SERIAL.println(getMagnitude());
+      return true;
+    }
+    else 
+    {
+      SERIAL.println("Can not detect magnet @" + loc_names[Location]);
+    }
+    delay(1000);
+  }
+}
+
+bool Magnetic_Encoder::finite_test(unsigned int max_test)
+{
+  for(int i = 0; i < max_test; ++i)
+  {
+    if(detectMagnet() == 1)
+    {
+      SERIAL.print("Current Magnitude @ " + loc_names[Location] + ": ");
+      SERIAL.println(getMagnitude());
+      return true;
+    }
+    else 
+    {
+      SERIAL.println("Can not detect magnet @" + loc_names[Location]);
+    }
+    delay(1000);
+  }
+  return false;
+}
+
+bool Magnetic_Encoder::Initiate(unsigned int trial_count)
+{
+  bool ret;
+
+  if(trial_count == 0)
+  {
+    if(detectMagnet() == 0)
+      ret = infinite_test();
+  }
+  else 
+  {
+    if(detectMagnet() == 0)
+      ret = finite_test(trial_count);
+  }
+  
+  return ret;
 }
 
 /*******************************************************
@@ -53,9 +109,9 @@ int Magnetic_Encoder::getAddress()
   magnet.  Setting this register zeros out max position
   register.
 *******************************************************/
-word Magnetic_Encoder::setMaxAngle(word newMaxAngle)
+unsigned int Magnetic_Encoder::setMaxAngle(unsigned int newMaxAngle)
 {
-  word _maxAngle;
+  unsigned int _maxAngle;
   if (newMaxAngle == -1)
     _maxAngle = getRawAngle();
   else
@@ -66,7 +122,7 @@ word Magnetic_Encoder::setMaxAngle(word newMaxAngle)
   writeOneByte(_addr_mang+1, lowByte(_maxAngle));
   delay(2);
 
-  word retVal = readTwoBytesSeparately(_addr_mang);
+  unsigned int retVal = readTwoBytesSeparately(_addr_mang);
   return retVal;
 }
 
@@ -76,7 +132,7 @@ word Magnetic_Encoder::setMaxAngle(word newMaxAngle)
   Out: value of max angle register
   Description: gets value of maximum angle register.
 *******************************************************/
-word Magnetic_Encoder::getMaxAngle()
+unsigned int Magnetic_Encoder::getMaxAngle()
 {
   return readTwoBytesSeparately(_addr_mang);
 }
@@ -89,9 +145,9 @@ word Magnetic_Encoder::getMaxAngle()
   If no value is provided, method will read position of
   magnet.  
 *******************************************************/
-word Magnetic_Encoder::setStartPosition(word startAngle)
+unsigned int Magnetic_Encoder::setStartPosition(unsigned int startAngle)
 {
-  word _rawStartAngle;
+  unsigned int _rawStartAngle;
   if (startAngle == -1)
     _rawStartAngle = getRawAngle();
   else
@@ -101,7 +157,7 @@ word Magnetic_Encoder::setStartPosition(word startAngle)
   delay(2);
   writeOneByte(_addr_zpos+1, lowByte(_rawStartAngle));
   delay(2);
-  word _zPosition = readTwoBytesSeparately(_addr_zpos);
+  unsigned int _zPosition = readTwoBytesSeparately(_addr_zpos);
 
   return (_zPosition);
 }
@@ -112,7 +168,7 @@ word Magnetic_Encoder::setStartPosition(word startAngle)
   Out: value of start position register
   Description: gets value of start position register.
 *******************************************************/
-word Magnetic_Encoder::getStartPosition()
+unsigned int Magnetic_Encoder::getStartPosition()
 {
   return readTwoBytesSeparately(_addr_zpos);
 }
@@ -125,9 +181,9 @@ word Magnetic_Encoder::getStartPosition()
   If no value is provided, method will read position of
   magnet.  
 *******************************************************/
-word Magnetic_Encoder::setEndPosition(word endAngle)
+unsigned int Magnetic_Encoder::setEndPosition(unsigned int endAngle)
 {
-  word _rawEndAngle;
+  unsigned int _rawEndAngle;
   if (endAngle == -1)
     _rawEndAngle = getRawAngle();
   else
@@ -137,7 +193,7 @@ word Magnetic_Encoder::setEndPosition(word endAngle)
   delay(2);
   writeOneByte(_addr_mpos+1, lowByte(_rawEndAngle));
   delay(2);
-  word _mPosition = readTwoBytesSeparately(_addr_mpos);
+  unsigned int _mPosition = readTwoBytesSeparately(_addr_mpos);
 
   return (_mPosition);
 }
@@ -148,9 +204,9 @@ word Magnetic_Encoder::setEndPosition(word endAngle)
   Out: value of end position register
   Description: gets value of end position register.
 *******************************************************/
-word Magnetic_Encoder::getEndPosition()
+unsigned int Magnetic_Encoder::getEndPosition()
 {
-  word retVal = readTwoBytesSeparately(_addr_mpos);
+  unsigned int retVal = readTwoBytesSeparately(_addr_mpos);
   return retVal;
 }
 
@@ -161,7 +217,7 @@ word Magnetic_Encoder::getEndPosition()
   Description: gets raw value of magnet position.
   start, end, and max angle settings do not apply
 *******************************************************/
-word Magnetic_Encoder::getRawAngle()
+unsigned int Magnetic_Encoder::getRawAngle()
 {
   return readTwoBytesTogether(_addr_raw_angle);
 }
@@ -174,7 +230,7 @@ word Magnetic_Encoder::getRawAngle()
   start, end, or max angle settings are used to 
   determine value
 *******************************************************/
-word Magnetic_Encoder::getScaledAngle()
+unsigned int Magnetic_Encoder::getScaledAngle()
 {
   return readTwoBytesTogether(_addr_angle);
 }
@@ -240,7 +296,7 @@ int Magnetic_Encoder::getAgc()
   Out: value of magnitude register
   Description: gets value of magnitude register.
 *******************************************************/
-word Magnetic_Encoder::getMagnitude()
+unsigned int Magnetic_Encoder::getMagnitude()
 {
   return readTwoBytesTogether(_addr_magnitude);
 }
@@ -251,7 +307,7 @@ word Magnetic_Encoder::getMagnitude()
   Out: value of CONF register 
   Description: gets value of CONF register.
 *******************************************************/
-word Magnetic_Encoder::getConf()
+unsigned int Magnetic_Encoder::getConf()
 {
   return readTwoBytesSeparately(_addr_conf);
 }
@@ -262,7 +318,7 @@ word Magnetic_Encoder::getConf()
   Out: none
   Description: sets value of CONF register.
 *******************************************************/
-void Magnetic_Encoder::setConf(word _conf)
+void Magnetic_Encoder::setConf(unsigned int _conf)
 {
   writeOneByte(_addr_conf, highByte(_conf));
   delay(2);
@@ -294,9 +350,9 @@ int Magnetic_Encoder::getBurnCount()
 *******************************************************/
 int Magnetic_Encoder::burnAngle()
 {
-  word _zPosition = getStartPosition();
-  word _mPosition = getEndPosition();
-  word _maxAngle = getMaxAngle();
+  unsigned int _zPosition = getStartPosition();
+  unsigned int _mPosition = getEndPosition();
+  unsigned int _maxAngle = getMaxAngle();
 
   int retVal = 1;
   if (detectMagnet() == 1) {
@@ -325,7 +381,7 @@ int Magnetic_Encoder::burnAngle()
 *******************************************************/
 int Magnetic_Encoder::burnMaxAngleAndConfig()
 {
-  word _maxAngle = getMaxAngle();
+  unsigned int _maxAngle = getMaxAngle();
 
   int retVal = 1;
   if (getBurnCount() == 0) {
@@ -363,10 +419,10 @@ int Magnetic_Encoder::readOneByte(int in_adr)
 /*******************************************************
   Method: readTwoBytesTogether
   In: two registers to read
-  Out: data read from i2c as a word
+  Out: data read from i2c as a unsigned int
   Description: reads two bytes register from i2c
 *******************************************************/
-word Magnetic_Encoder::readTwoBytesTogether(int addr_in)
+unsigned int Magnetic_Encoder::readTwoBytesTogether(int addr_in)
 {
 
   // use only for Angle, Raw Angle and Magnitude
@@ -410,10 +466,10 @@ word Magnetic_Encoder::readTwoBytesTogether(int addr_in)
 /*******************************************************
   Method: readTwoBytesSeparately
   In: two registers to read
-  Out: data read from i2c as a word
+  Out: data read from i2c as a unsigned int
   Description: reads two bytes register from i2c
 *******************************************************/
-word Magnetic_Encoder::readTwoBytesSeparately(int addr_in)
+unsigned int Magnetic_Encoder::readTwoBytesSeparately(int addr_in)
 {
   int highByte = readOneByte(addr_in  );
   int lowByte  = readOneByte(addr_in+1);

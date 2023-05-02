@@ -4,14 +4,6 @@
 #include "Encoder.h"
 #include "Mathematics.hpp"
 
-#ifdef ARDUINO_SAMD_VARIANT_COMPLIANCE
-  #define SERIAL SerialUSB
-  #define SYS_VOL   3.3
-#else
-  #define SERIAL Serial
-  #define SYS_VOL   5
-#endif
-
 enum  MotorDirections 
 {
     MOTOR_DIRECTION_NONE = 0,
@@ -29,27 +21,33 @@ class MotorController
 {
 private:
     float current_angle;
+    float target_angle;
+
     float speed;    
 
     const uint32_t* m_pins;     size_t pin_size;
     const uint32_t* m_encoder;  size_t encoder_size;
 
     MotorType       m_motor_type;
-    End_Effector    m_end_effector_pos;
     MotorDirections m_direction;
 
+    Magnetic_Encoder encoder;
+    unsigned int joint_type;
 public:
     //initialization of pins happens here
     MotorController(const uint32_t *pins, size_t pin_arr_size, const uint32_t* encoder_pins,
                     size_t encoder_pin_arr_size, MotorType motor_type);
+    
+    //this will initialize the encoders
+    bool Begin(unsigned int encoder_use);
 
     void SetDirection(const MotorDirections& direction) { m_direction = direction;}
-    void SetSpeed(float speed)                          { this->speed = speed; }
-    void Set_Position(End_Effector end)                 { m_end_effector_pos = end; } 
+    void SetSpeed(float speed = 12)                     { this->speed = speed; }
+    void Set_Target_Angle(float target_angle)           { this->target_angle = target_angle; }
 
     void Run();
 
 private:
-    const float Get_CurrentPosition() const { return current_angle; }
-    
+    float Get_CurrentAngle();
+    float convertRawAngleToDegrees(unsigned int newAngle);
 };

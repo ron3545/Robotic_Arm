@@ -23,3 +23,32 @@ MotorController::MotorController(const uint32_t *pins, size_t pin_arr_size, cons
     }
 
 }
+
+ bool MotorController::Begin(unsigned int encoder_use)
+ {
+    encoder.Set_Encoder_loc(encoder_use);
+    if(encoder.Initiate())
+        return true;
+    return false;
+ }
+
+ float MotorController::Get_CurrentAngle()
+ {
+    current_angle = convertRawAngleToDegrees(encoder.getRawAngle());
+    return current_angle;
+ }
+
+float MotorController::convertRawAngleToDegrees(unsigned int newAngle)
+{
+  /* Raw data reports 0 - 4095 segments, which is 0.087890625 of a degree */
+  float retVal = newAngle * 0.087890625;
+  return retVal;
+}
+
+void MotorController::Run()
+{
+    if(joint_type == ENCODER_LOCATION_JOINT1)
+    {
+        
+    }
+}

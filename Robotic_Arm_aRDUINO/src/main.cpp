@@ -5,17 +5,24 @@
 
 #include <Wire.h>
 
-#ifdef ARDUINO_SAMD_VARIANT_COMPLIANCE
-  #define SERIAL SerialUSB
-  #define SYS_VOL   3.3
-#else
-  #define SERIAL Serial
-  #define SYS_VOL   5
-#endif
+#define BASE_ADDRESS 0x70 //TCA9548A address
 
 const int NJOINTS = 4;
 
 boolean Should_Exit = false;
+
+MotorController* motors       = nullptr;
+Magnetic_Encoder* encoders    = nullptr;
+Magnetic_Encoder encoder;
+End_Effector end_effector;
+
+PSX psx;
+PSX::PSXDATA PSXdata;
+int PSXerror;
+
+//encoder 
+double Joint1, Joint2, Joint3, Joint4;
+
 
 //PS2 Controller
 const uint8_t Data      = 12;
@@ -37,25 +44,92 @@ const uint32_t link1[]  = {4, 7};
 const uint32_t link2[]  = {11, 12, 10};
 const uint32_t link3[]  = {9, 8, 7};
 
-MotorController* motors   = nullptr;
-End_Effector end_effector;
+String joint_names[] = { "Joint 1", "Joint 2", "Joint 3", "Joint 4"};
 
-Magnetic_Encoder magnetic_encoder;
-PSX psx;
-
-PSX::PSXDATA PSXdata;
-int PSXerror;
-
+static void Controller(End_Effector& end_effector);
+static void I2C_Multiplexer(uint8_t serial_bus);
+static void Destroy_ptr();
 
 void setup()
 {
+  encoders = new Magnetic_Encoder[NJOINTS];
   psx.setupPins(Data, Cmd, Attention, Clock, 10);
   psx.config(PSXMODE_ANALOG);
-  SERIAL.begin(9600);
+
+  Serial.begin(9600);
+  Wire.begin();
+
+  unsigned int encoder_uses[] = {
+    ENCODER_LOCATION_JOINT1,  //Base
+    ENCODER_LOCATION_JOINT2,
+    ENCODER_LOCATION_JOINT3,
+    ENCODER_LOCATION_JOINT4 
+  };
+
+  bool N_encoders_Initiated[NJOINTS];
+  bool is_all_encoders_initiated = false;
+
+  SERIAL.println("Initializing");
+
+ while(!is_all_encoders_initiated)
+  {
+    Magnetic_Encoder encoder;
+
+    for(unsigned int i = 0; i < NJOINTS; ++i)
+    { 
+      I2C_Multiplexer(i); //offset should only starts at 1
+      encoder.Set_Encoder_loc(encoder_uses[i]);
+      N_encoders_Initiated[i] = encoder.Initiate();
+      encoders[i] = encoder;
+    }
+
+    //check if all encoders is initiated properly
+    if(N_encoders_Initiated[0] && N_encoders_Initiated[1] && N_encoders_Initiated[2] && N_encoders_Initiated[3] )
+      is_all_encoders_initiated = true;
+    else 
+      is_all_encoders_initiated = false;
+  }
+  SERIAL.println("All magnetic sensors has been initialized");
+  
 }
 
+float convertRawAngleToDegrees(word newAngle)
+{
+  /* Raw data reports 0 - 4095 segments, which is 0.087890625 of a degree */
+  float retVal = newAngle * 0.087890625;
+  return retVal;
+}
 
-void loop() {
+void loop() 
+{ 
+  for(unsigned int i = 0; i < NJOINTS; ++i)
+  {
+    I2C_Multiplexer(i);
+    SERIAL.println(String(convertRawAngleToDegrees(encoder.getRawAngle()),DEC));
+    SERIAL.println("\n \n =======================================================================");
+  }
+}
+
+void Destroy_ptr()
+{
+  if(motors != nullptr)
+    delete[] motors;
+  
+  if(encoders != nullptr)
+    delete[] encoders;
+}
+
+void I2C_Multiplexer(uint8_t serial_bus)
+{ 
+  if(serial_bus > 7) return;
+
+  Wire.beginTransmission(BASE_ADDRESS);
+  Wire.write( 1 << serial_bus);
+  Wire.endTransmission();
+}
+
+void Controller(End_Effector& end_effector)
+{
   // Read controller state
   PSXerror = psx.read(PSXdata);
 
@@ -70,56 +144,5 @@ void loop() {
       Serial.print(PSXdata.JoyRightX);
       Serial.print(", Y: ");
       Serial.print(PSXdata.JoyRightY);
-
-      //Print the button states
-      Serial.print(", Buttons: ");
-      if(PSXdata.buttons & PSXBTN_LEFT) {
-        Serial.print("Left, ");
-      }
-      if(PSXdata.buttons & PSXBTN_DOWN) {
-        Serial.print("Down, ");
-      }
-      if(PSXdata.buttons & PSXBTN_RIGHT) {
-        Serial.print("Right, ");
-      }
-      if(PSXdata.buttons & PSXBTN_UP) {
-        Serial.print("Up, ");
-      }
-      if(PSXdata.buttons & PSXBTN_START) {
-        Serial.print("Start, ");
-      }
-      if(PSXdata.buttons & PSXBTN_SELECT) {
-        Serial.print("Select, ");
-      }
-      if(PSXdata.buttons & PSXBTN_SQUARE) {
-        Serial.print("Square, ");
-      }
-      if(PSXdata.buttons & PSXBTN_CROSS) {
-        Serial.print("Cross, ");
-      }
-      if(PSXdata.buttons & PSXBTN_CIRCLE) {
-        Serial.print("Circle, ");
-      }
-      if(PSXdata.buttons & PSXBTN_TRIANGLE) {
-        Serial.print("Triangle, ");
-      }
-      if(PSXdata.buttons & PSXBTN_R1) {
-        Serial.print("R1, ");
-      }
-      if(PSXdata.buttons & PSXBTN_L1) {
-        Serial.print("L1, ");
-      }
-      if(PSXdata.buttons & PSXBTN_R2) {
-        Serial.print("R2, ");
-      }
-      if(PSXdata.buttons & PSXBTN_L2) {
-        Serial.print("L2, ");
-      }
-
-      Serial.println("");
-  } else {
-    Serial.println("No success reading data. Check connections and timing.");
-  }
-
-  delay(10);
+  
 }
