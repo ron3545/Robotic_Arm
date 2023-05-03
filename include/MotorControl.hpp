@@ -40,7 +40,8 @@ public:
     //this will initialize the encoders
     bool Begin(unsigned int encoder_use);
 
-    void Set_Joystic_Analog_Val(float joystic_analog_val)   { this->joystic_analog_val = joystic_analog_val; }
+    //
+    void Set_speed(float joystic_analog_val)   { this->joystic_analog_val = joystic_analog_val; }
     void Set_Joint_Type(unsigned int joint_type)            { this->joint_type =  joint_type; }
     void SetEnd_Effector(End_Effector end_effector)         { this->end_effector = end_effector; }
     void SetDirection(const MotorDirections& direction)     { this->direction = direction;}
@@ -49,7 +50,7 @@ public:
     //this will set the radius on which the arm is able to move
     void Set_Radius(float radius)                           { this->radius = radius; }
 
-    void MoveTo();
+    void MoveTo();  
 
 private:
     float Get_CurrentAngle();

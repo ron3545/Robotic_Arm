@@ -13,7 +13,7 @@ class InverseKinematics
 private:
     InverseKinematics();
 private:
-    End_Effector* end_effector;         //position
+Base    End_Effector* end_effector;         //position
 
     double radius;
     float Arc_Length, max_arc_length;
